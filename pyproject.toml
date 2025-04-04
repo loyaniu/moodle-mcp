@@ -1,7 +1,7 @@
 [project]
 name = "moodle-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Model Context Protocol (MCP) server implementation that provides capabilities to interact with Moodle LMS."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -10,3 +10,9 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "requests>=2.32.3",
 ]
+
+[project.scripts]
+moodle-mcp = "moodle_mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/loyaniu/moodle-mcp"

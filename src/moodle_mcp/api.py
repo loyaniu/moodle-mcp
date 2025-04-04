@@ -2,8 +2,9 @@ from typing import TypedDict
 
 from glom import glom
 
-from moodle import APIFunction, get_moodle_api_data
-from utils import to_json_file
+from .logger import logger
+from .moodle import APIFunction, get_moodle_api_data
+from .utils import to_json_file
 
 
 class UpcomingEvent(TypedDict):
@@ -37,6 +38,8 @@ def get_upcoming_events() -> list[UpcomingEvent]:
 
     # use glom to extract the data
     upcoming_events = glom(data, upcoming_events_spec)
+
+    logger.info(f"Extracted {len(upcoming_events)} upcoming events")
 
     return upcoming_events
 
