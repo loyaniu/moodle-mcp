@@ -14,9 +14,30 @@ For available Moodle API functions, please refer to the [official documentation]
 
 ## Setup Instructions
 
+### Method 1: Using `mcp` CLI (recommended)
+
 1. Create your own `.env` file from `.env.example`
 2. Assume you have `uv` installed, run `uv add "mcp[cli]"` to install the MCP CLI tools
 3. Run `mcp install main.py -f .env` to add the moodle-mcp server to Claude app
+
+### Method 2: Using `uvx`
+
+Go to Claude > Settings > Developer > Edit Config > claude_desktop_config.json to include the following
+
+```json
+{
+  "mcpServers": {
+    "moodle-mcp": {
+      "command": "uvx",
+      "args": ["moodle-mcp"],
+      "env": {
+        "MOODLE_URL": "https://{your-moodle-url}/webservice/rest/server.php",
+        "MOODLE_TOKEN": "{your-moodle-token}"
+      }
+    }
+  }
+}
+```
 
 ## Authentication
 
