@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/loyaniu-moodle-mcp-badge.png)](https://mseep.ai/app/loyaniu-moodle-mcp)
+
 # Moodle-MCP
 
 > A Model Context Protocol (MCP) server implementation that provides capabilities to interact with Moodle LMS.
