@@ -273,7 +273,7 @@ wheels = [
 
 [[package]]
 name = "moodle-mcp"
-version = "0.1.0"
+version = "0.2.1"
 source = { virtual = "." }
 dependencies = [
     { name = "glom" },
@@ -285,7 +285,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "glom", specifier = ">=24.11.0" },
-    { name = "mcp", extras = ["cli"], specifier = ">=1.6.0" },
+    { name = "mcp", extras = ["cli"], specifier = ">=1.6.0,<2" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "requests", specifier = ">=2.32.3" },
 ]
