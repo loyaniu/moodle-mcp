@@ -1,7 +1,7 @@
 from mcp.server.fastmcp import FastMCP
 
-from . import api
-from .logger import logger
+from moodle_mcp import api
+from moodle_mcp.logger import logger
 
 mcp = FastMCP("moodle-mcp", dependencies=["glom", "requests"])
 
