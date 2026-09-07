@@ -61,8 +61,8 @@ For available Moodle API functions, please refer to the [official documentation]
 ### Method 1: Using `mcp` CLI (recommended)
 
 1. Create your own `.env` file from `.env.example`
-2. Assume you have `uv` installed, run `uv add "mcp[cli]"` to install the MCP CLI tools
-3. Run `mcp install main.py -f .env` to add the moodle-mcp server to Claude app
+2. Run `uv sync` to install dependencies and MCP CLI tools
+3. Run `uv run --with-editable . mcp install src/moodle_mcp/server.py -f .env --with-editable .` to add the moodle-mcp server to Claude app
 
 ### Method 2: Using `uvx`
 

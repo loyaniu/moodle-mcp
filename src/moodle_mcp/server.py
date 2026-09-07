@@ -1,7 +1,13 @@
 from mcp.server.fastmcp import FastMCP
 
-from . import api
-from .logger import logger
+try:
+    from moodle_mcp import api
+    from moodle_mcp.logger import logger
+except ModuleNotFoundError as error:
+    if error.name != "moodle_mcp":
+        raise
+    from . import api
+    from .logger import logger
 
 mcp = FastMCP("moodle-mcp", dependencies=["glom", "requests"])
 
