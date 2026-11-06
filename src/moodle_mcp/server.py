@@ -33,7 +33,7 @@ def get_assignments(courseids: list[int] | None = None) -> list[api.Assignment]:
 @mcp.tool()
 def get_assignment_status(assignid: int) -> api.AssignmentStatus:
     """Get submission and grading status for a specific assignment by its ID"""
-    return api.get_assignment_status(assignid)
+    return api.get_assignment_status(assignid, with_dates=True)
 
 
 @mcp.tool()

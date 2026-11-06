@@ -487,7 +487,23 @@ def get_assignments(courseids: list[int] | None = None) -> list[Assignment]:
 # ---------------------------------------------------------------------------
 
 
-def get_assignment_status(assignid: int) -> AssignmentStatus:
+def _get_assignment_dates(assignid: int) -> tuple[int, int]:
+    """Due date and cut-off date of an assignment, (0, 0) if not found."""
+    for assign in get_assignments():
+        if assign["id"] == assignid:
+            return assign["duedate"] or 0, assign["cutoffdate"] or 0
+    logger.warning(f"Assignment {assignid} not found in enrolled courses")
+    return 0, 0
+
+
+def get_assignment_status(assignid: int, with_dates: bool = False) -> AssignmentStatus:
+    """Submission and grading status of one assignment.
+
+    mod_assign_get_submission_status does not return the assignment's due
+    or cut-off date. With ``with_dates=True`` they are looked up through
+    mod_assign_get_assignments (one extra request); otherwise they are 0.
+    Internal callers that already have the dates leave it off.
+    """
     data = get_moodle_api_data(
         APIFunction.mod_assign_get_submission_status,
         params={"assignid": str(assignid)},
@@ -503,14 +519,14 @@ def get_assignment_status(assignid: int) -> AssignmentStatus:
     lastattempt = data.get("lastattempt") or {}
     # Group assignments report the submission under "teamsubmission".
     submission = lastattempt.get("teamsubmission") or lastattempt.get("submission") or {}
-    assignment_info = data.get("assignment") or data.get("config") or {}
     submission_status = submission.get("status")
+    duedate, cutoffdate = _get_assignment_dates(assignid) if with_dates else (0, 0)
 
     return {
         "submission_status": submission_status,
         "grading_status": lastattempt.get("gradingstatus"),
-        "duedate": assignment_info.get("duedate") or 0,
-        "cutoffdate": assignment_info.get("cutoffdate") or 0,
+        "duedate": duedate,
+        "cutoffdate": cutoffdate,
         "extensionduedate": lastattempt.get("extensionduedate") or 0,
         "late": bool(lastattempt.get("late")),
         "submitted": submission_status == "submitted",
