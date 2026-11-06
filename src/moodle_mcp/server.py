@@ -1,9 +1,87 @@
 from mcp.server.mcpserver import MCPServer
+from mcp.types import ToolAnnotations
 
 from . import api
+from . import enrolment
+from . import downloads
 from .logger import logger
 
 mcp = MCPServer("moodle-mcp", dependencies=["glom", "requests"])
+
+
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True))
+def list_course_files(courseid: int) -> list[downloads.CourseFile]:
+    """List downloadable course files with module IDs, names, paths and sizes, without tokens."""
+    return downloads.list_course_files(courseid)
+
+
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False,
+                                    open_world_hint=True))
+def download_course_files(courseid: int, output_dir: str | None = None) -> downloads.CourseDownloadResult:
+    """Download all course files exposed by Moodle's course contents API in one call.
+
+    Use an absolute output_dir; default is output/downloads/<courseid>/course.
+    Files are grouped by module ID and file identity to avoid duplicate names.
+    Repeat with the same directory to skip unchanged files verified by SHA-256.
+    New versions are saved separately; existing/local files are preserved.
+    A local manifest tracks progress for resuming after failures. Each file's
+    status is returned; one failed download does not stop the other files.
+    Excludes external links, embedded page/forum attachments and video streams.
+    Maximum size is 250 MiB per file; removed remote files are kept locally.
+    """
+    return downloads.download_course_files(courseid, output_dir)
+
+
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False,
+                                    open_world_hint=True))
+def download_course_file(courseid: int, moduleid: int, filename: str | None = None,
+                         output_dir: str | None = None,
+                         filepath: str | None = None) -> downloads.DownloadResult:
+    """Download a Moodle course file to the local machine using token authentication.
+
+    Use list_course_files to find moduleid and filename. Specify filepath when
+    duplicate names exist in a folder resource. output_dir should be an absolute
+    local directory; default is output/downloads/<courseid> in the server folder.
+    Returns the local path, size and SHA-256. Existing files are never overwritten.
+    Maximum download size is 250 MiB. External links are not downloaded.
+    """
+    return downloads.download_course_file(courseid, moduleid, filename, output_dir, filepath)
+
+
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True))
+def search_courses(query: str, page: int = 0, perpage: int = 20) -> enrolment.CourseSearch:
+    """Search the visible Moodle course catalogue, including courses not enrolled in.
+
+    Page is zero-based; perpage is 1-100. Returns total matches and enrolment types.
+    """
+    return enrolment.search_courses(query, page, perpage)
+
+
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True))
+def get_course_enrolment_methods(courseid: int) -> list[enrolment.EnrolmentMethod]:
+    """List enrolment methods and instance IDs. Status is true if available, otherwise a reason."""
+    return enrolment.get_course_enrolment_methods(courseid)
+
+
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True))
+def get_self_enrolment_info(instanceid: int) -> enrolment.SelfEnrolmentInfo:
+    """Check a self-enrolment instance's availability and whether an enrolment key is required."""
+    return enrolment.get_self_enrolment_info(instanceid)
+
+
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False,
+                                    idempotent_hint=False, open_world_hint=True))
+def self_enrol_course(courseid: int, password: str = "",
+                      instanceid: int | None = None) -> enrolment.EnrolmentResult:
+    """Enrol the authenticated user in a course using Moodle self enrolment.
+
+    Use when the user requests joining that course. Check enrolment methods first;
+    specify instanceid if multiple self-enrolment options exist. Password is the
+    optional enrolment key. Only status=true means success; inspect warnings on
+    failure. Moodle restrictions still apply. After a network error, check
+    get_my_courses before retrying because enrolment may already have succeeded.
+    """
+    return enrolment.self_enrol_course(courseid, password, instanceid)
 
 
 @mcp.tool()

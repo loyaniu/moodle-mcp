@@ -26,6 +26,10 @@ class APIFunction(Enum):
     )
     core_webservice_get_site_info = "core_webservice_get_site_info"
     core_enrol_get_users_courses = "core_enrol_get_users_courses"
+    core_course_search_courses = "core_course_search_courses"
+    core_enrol_get_course_enrolment_methods = "core_enrol_get_course_enrolment_methods"
+    enrol_self_get_instance_info = "enrol_self_get_instance_info"
+    enrol_self_enrol_user = "enrol_self_enrol_user"
     core_course_get_contents = "core_course_get_contents"
     mod_assign_get_assignments = "mod_assign_get_assignments"
     mod_assign_get_submission_status = "mod_assign_get_submission_status"
@@ -105,10 +109,17 @@ def get_moodle_api_data(
     )
 
     try:
-        rsp = requests.get(MOODLE_URL, params=request_params, timeout=30)
+        if function == APIFunction.enrol_self_enrol_user:
+            rsp = requests.post(MOODLE_URL, data=request_params, timeout=30)
+        else:
+            rsp = requests.get(MOODLE_URL, params=request_params, timeout=30)
     except requests.RequestException as e:
-        logger.error(f"Network error calling {function.value}: {e}")
-        raise MoodleAPIError("network_error", str(e), function.value) from e
+        # Requests exceptions can contain the URL, token and enrolment key.
+        logger.error(f"Network error calling {function.value}: {type(e).__name__}")
+        message = "Network request failed."
+        if function == APIFunction.enrol_self_enrol_user:
+            message += " Enrolment outcome is unknown; check get_my_courses before retrying."
+        raise MoodleAPIError("network_error", message, function.value) from None
 
     if rsp.status_code != 200:
         logger.error(f"Moodle API HTTP error: {rsp.status_code} for {function.value}")
