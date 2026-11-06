@@ -77,3 +77,47 @@ def test_missing_or_null_lastattempt(monkeypatch):
             "submitted": False,
             "graded": False,
         }
+
+
+def test_dates_are_looked_up_when_requested(monkeypatch):
+    payload = {"lastattempt": {"submission": {"status": "new"}, "extensionduedate": None}}
+    monkeypatch.setattr(api, "get_moodle_api_data", lambda *a, **kw: payload)
+    monkeypatch.setattr(api, "to_json_file", lambda *a, **kw: None)
+    monkeypatch.setattr(
+        api,
+        "get_assignments",
+        lambda courseids=None: [
+            {"id": 2, "duedate": 1_700_000_000, "cutoffdate": 0},
+            {"id": 1, "duedate": 1_800_000_000, "cutoffdate": 1_800_086_400},
+        ],
+    )
+
+    result = api.get_assignment_status(1, with_dates=True)
+    STATUS_ADAPTER.validate_python(result)
+
+    assert result["duedate"] == 1_800_000_000
+    assert result["cutoffdate"] == 1_800_086_400
+
+
+def test_unknown_assignment_dates_fall_back_to_zero(monkeypatch):
+    payload = {"lastattempt": {"submission": {"status": "new"}}}
+    monkeypatch.setattr(api, "get_moodle_api_data", lambda *a, **kw: payload)
+    monkeypatch.setattr(api, "to_json_file", lambda *a, **kw: None)
+    monkeypatch.setattr(api, "get_assignments", lambda courseids=None: [])
+
+    result = api.get_assignment_status(99, with_dates=True)
+
+    assert (result["duedate"], result["cutoffdate"]) == (0, 0)
+
+
+def test_dates_are_not_fetched_by_default(monkeypatch):
+    payload = {"lastattempt": {"submission": {"status": "new"}}}
+    monkeypatch.setattr(api, "get_moodle_api_data", lambda *a, **kw: payload)
+    monkeypatch.setattr(api, "to_json_file", lambda *a, **kw: None)
+
+    def fail(*a, **kw):
+        raise AssertionError("get_assignments must not be called")
+
+    monkeypatch.setattr(api, "get_assignments", fail)
+
+    assert api.get_assignment_status(1)["duedate"] == 0
