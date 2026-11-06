@@ -13,6 +13,19 @@ import requests
 from typing_extensions import TypedDict
 
 from .moodle import APIFunction, MOODLE_TOKEN, MOODLE_URL, get_moodle_api_data
+from .utils import getenv
+
+DOWNLOAD_DIR_ENV = "MOODLE_MCP_DOWNLOAD_DIR"
+
+
+def _default_download_dir(courseid: int) -> Path:
+    """Base directory used when a tool call does not pass ``output_dir``.
+
+    MCP clients often start the server with a read-only working directory
+    (``/`` for Claude Desktop on macOS), so the default must not be relative.
+    """
+    base = getenv(DOWNLOAD_DIR_ENV) or str(Path.home() / "Downloads" / "moodle-mcp")
+    return Path(base).expanduser() / str(courseid)
 
 
 class CourseFile(TypedDict):
@@ -92,8 +105,24 @@ def download_course_file(courseid: int, moduleid: int, filename: str | None = No
     if len(matches) != 1:
         raise ValueError("File not found or ambiguous; use list_course_files and specify filename/filepath")
     metadata, fileurl = matches[0]
-    directory = Path(output_dir or f"output/downloads/{courseid}").expanduser().resolve()
+    directory = (Path(output_dir).expanduser() if output_dir
+                 else _default_download_dir(courseid)).resolve()
     return _download_file(metadata, fileurl, directory / _safe_filename(metadata["filename"]))
+
+
+def _move_without_overwrite(source: Path, destination: Path) -> None:
+    """Move a finished download into place without replacing an existing file."""
+    try:
+        # Atomic creation without replacing an existing file, even in a race.
+        os.link(source, destination)
+    except FileExistsError:
+        raise
+    except OSError:
+        # Some file systems (exFAT/FAT32 drives, cloud-synced folders, some
+        # network shares) do not support hard links.
+        if destination.exists():
+            raise FileExistsError(f"File already exists: {destination}") from None
+        os.replace(source, destination)
 
 
 def _download_file(metadata: CourseFile, fileurl: str, destination: Path) -> DownloadResult:
@@ -134,8 +163,7 @@ def _download_file(metadata: CourseFile, fileurl: str, destination: Path) -> Dow
                 raise RuntimeError("Moodle returned an empty file")
             if metadata["filesize"] and size != metadata["filesize"]:
                 raise RuntimeError("Downloaded size does not match Moodle file metadata")
-            # Atomic creation without replacing an existing file, even in a race.
-            os.link(temporary, destination)
+            _move_without_overwrite(temporary, destination)
             return {"path": str(destination), "filename": metadata["filename"],
                     "bytes_written": size, "sha256": digest.hexdigest(),
                     "mimetype": content_type}
@@ -190,7 +218,8 @@ def _save_manifest(path: Path, data: dict) -> None:
 def download_course_files(courseid: int, output_dir: str | None = None) -> CourseDownloadResult:
     """Download all API-listed course files, with a resumable local manifest."""
     files = list(_files(courseid))  # Fetch course contents once for the entire batch.
-    root = Path(output_dir or f"output/downloads/{courseid}/course").expanduser().resolve()
+    root = (Path(output_dir).expanduser() if output_dir
+            else _default_download_dir(courseid) / "course").resolve()
     root.mkdir(parents=True, exist_ok=True)
     manifest_path = root / "moodle-downloads.json"
     manifest = {"courseid": courseid, "files": {}}

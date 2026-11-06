@@ -94,6 +94,39 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(result[0]["moduleid"], 7)
         self.assertNotIn("fileurl", result[0])
 
+    def test_default_directory_is_absolute_and_configurable(self):
+        with patch.object(downloads, "getenv", return_value=None), \
+                patch.object(downloads.Path, "home", return_value=Path(self.directory.name)):
+            path = downloads._default_download_dir(42)
+        self.assertEqual(path, Path(self.directory.name) / "Downloads" / "moodle-mcp" / "42")
+        custom = Path(self.directory.name) / "custom"
+        with patch.object(downloads, "getenv", return_value=str(custom)):
+            self.assertEqual(downloads._default_download_dir(42), custom / "42")
+
+    def test_download_without_output_dir_uses_default_directory(self):
+        custom = Path(self.directory.name) / "custom"
+        with patch.object(downloads, "getenv", return_value=str(custom)), \
+                patch.object(downloads, "_files", return_value=iter([(self.meta, self.url)])), \
+                patch.object(downloads.requests, "get", return_value=self.response()):
+            result = downloads.download_course_file(42, 7)
+        self.assertEqual(Path(result["path"]), (custom / "42" / "slides.pdf").resolve())
+
+    def test_falls_back_when_hard_links_are_unsupported(self):
+        with patch.object(downloads.os, "link", side_effect=PermissionError("no hard links")):
+            result = self.download(self.response())
+        self.assertEqual(Path(result["path"]).read_bytes(), b"%PDF-test")
+        self.assertEqual([p.name for p in Path(self.directory.name).iterdir()], ["slides.pdf"])
+
+    def test_fallback_still_refuses_to_overwrite(self):
+        target = Path(self.directory.name) / "slides.pdf"
+        source = Path(self.directory.name) / "partial"
+        target.write_bytes(b"existing")
+        source.write_bytes(b"new")
+        with patch.object(downloads.os, "link", side_effect=PermissionError("no hard links")):
+            with self.assertRaises(FileExistsError):
+                downloads._move_without_overwrite(source, target)
+        self.assertEqual(target.read_bytes(), b"existing")
+
     def test_windows_filename_safety(self):
         self.assertEqual(downloads._safe_filename("CON.pdf"), "_CON.pdf")
         self.assertNotIn("/", downloads._safe_filename("../slides.pdf"))

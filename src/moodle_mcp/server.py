@@ -20,7 +20,8 @@ def list_course_files(courseid: int) -> list[downloads.CourseFile]:
 def download_course_files(courseid: int, output_dir: str | None = None) -> downloads.CourseDownloadResult:
     """Download all course files exposed by Moodle's course contents API in one call.
 
-    Use an absolute output_dir; default is output/downloads/<courseid>/course.
+    Use an absolute output_dir; default is ~/Downloads/moodle-mcp/<courseid>/course
+    (or $MOODLE_MCP_DOWNLOAD_DIR/<courseid>/course when that is set).
     Files are grouped by module ID and file identity to avoid duplicate names.
     Repeat with the same directory to skip unchanged files verified by SHA-256.
     New versions are saved separately; existing/local files are preserved.
@@ -41,7 +42,8 @@ def download_course_file(courseid: int, moduleid: int, filename: str | None = No
 
     Use list_course_files to find moduleid and filename. Specify filepath when
     duplicate names exist in a folder resource. output_dir should be an absolute
-    local directory; default is output/downloads/<courseid> in the server folder.
+    local directory; default is ~/Downloads/moodle-mcp/<courseid> (or
+    $MOODLE_MCP_DOWNLOAD_DIR/<courseid> when that is set).
     Returns the local path, size and SHA-256. Existing files are never overwritten.
     Maximum download size is 250 MiB. External links are not downloaded.
     """
