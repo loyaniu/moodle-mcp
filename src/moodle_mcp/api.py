@@ -1022,8 +1022,9 @@ def get_course_announcements(courseid: int | None = None) -> list[CourseAnnounce
         # Step 4: Get discussions from this forum
         try:
             discussions_data = get_moodle_api_data(
-                APIFunction.mod_forum_get_discussions,
-                params={"forumid": str(forum_id), "perpage": "20"},
+                APIFunction.mod_forum_get_forum_discussions,
+                # page defaults to -1; Moodle computes the offset as page * perpage
+                params={"forumid": str(forum_id), "page": "0", "perpage": "20"},
             )
         except MoodleAPIError as e:
             logger.warning(f"Could not get discussions for forum {forum_id}: {e}")

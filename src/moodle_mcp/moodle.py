@@ -35,7 +35,7 @@ class APIFunction(Enum):
     gradereport_user_get_grade_items = "gradereport_user_get_grade_items"
     core_course_get_updates_since = "core_course_get_updates_since"
     mod_forum_get_forums_by_courses = "mod_forum_get_forums_by_courses"
-    mod_forum_get_discussions = "mod_forum_get_discussions"
+    mod_forum_get_forum_discussions = "mod_forum_get_forum_discussions"
     core_completion_get_course_completion_status = (
         "core_completion_get_course_completion_status"
     )
@@ -72,7 +72,7 @@ DELETE_FIELDS = {
         "feedback.plugins",
         "feedback.grade.grader",
     ],
-    APIFunction.mod_forum_get_discussions: [
+    APIFunction.mod_forum_get_forum_discussions: [
         "discussions.*.messageinlinefiles",
         "discussions.*.attachments",
     ],
