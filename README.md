@@ -90,3 +90,7 @@ Go to Claude > Settings > Developer > Edit Config > claude_desktop_config.json t
 1. Navigate to your Moodle token management page `https://{your-moodle-url}/user/managetoken.php`
 2. Use the token with `Moodle mobile web service` in the `Service` column
 3. Add this token to your `.env` file
+
+### Optional: debug output
+
+Set `MOODLE_MCP_DEBUG_DIR` to a writable directory to save the raw Moodle API responses there as JSON files. It is unset by default, so nothing is written to disk.
